@@ -1,0 +1,6 @@
+[submodule "extern/SFMT"]
+	path = extern/SFMT
+	url = https://github.com/ips4o/SFMT.git
+[submodule "extern/dSFMT"]
+	path = extern/dSFMT
+	url = https://github.com/ips4o/dSFMT.git
