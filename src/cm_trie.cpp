@@ -10,7 +10,7 @@
 #include "common/utils.hpp"
 #include "generator/generator.hpp"
 
-#define GENCLASS GenRandom
+#define GENCLASS GenExponential
 
 #define N_ITER 10
 #define MIN_BUFSIZ 8192

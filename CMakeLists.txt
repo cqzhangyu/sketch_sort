@@ -19,3 +19,4 @@ find_package(Threads REQUIRED)
 link_libraries(Threads::Threads)
 
 add_executable(cm_trie src/cm_trie.cpp)
+add_executable(switch_sort src/switch_sort.cpp)
