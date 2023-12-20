@@ -19,7 +19,7 @@ class Trie {
         int end;
         uint64_t cm_size;
 
-        uint16_t child_idx;
+        uint64_t child_idx;
         uint8_t shift;
 
         Node() : begin(0), end(0), cm_size(0), child_idx(0), shift(0) {}
@@ -29,7 +29,7 @@ class Trie {
                 printf("!!!!!!!!!");
 
                 printf(
-                    "begin: %d end: %d cm_size: %lu shift: %d child_idx: %d\n",
+                    "begin: %d end: %d cm_size: %lu shift: %d child_idx: %ld\n",
                     begin, end, cm_size, shift, child_idx);
             }
         }
@@ -38,13 +38,13 @@ class Trie {
     uint32_t m_threshold;
     std::vector<Trie::Node> m_nodes;
     std::vector<size_t> m_leaves;
+    uint64_t m_max_idx;
 
     void build_trie(CmSketch* cm, uint64_t prefix, uint8_t shift,
                     uint64_t idx) {
-        // printf("prefix: %016lx shift: %d idx: %lu\n", prefix, shift, idx);
-
         uint64_t cm_size = cm->query(prefix);
-        // std::cout << "cm_size: " << cm_size << std::endl;
+        // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix,
+        // cm_size, shift, idx);
         if (cm_size < m_threshold) {
             m_leaves.push_back(idx);
             m_nodes[idx].cm_size = cm_size;
@@ -67,27 +67,28 @@ class Trie {
     }
 
    public:
-    Trie(CmSketch* cm, uint64_t threshold) : m_threshold(threshold) {
+    Trie(CmSketch* cm, uint64_t threshold)
+        : m_threshold(threshold), m_max_idx(0) {
         m_nodes.resize((1 << Switch::RADIX_BIT), Node());
         for (uint64_t i = 0; i < (1 << Switch::RADIX_BIT); ++i) {
             build_trie(cm, (i << Switch::INITIAL_SHIFT), Switch::INITIAL_SHIFT,
                        i);
         }
-    }
 
-    void sort(uint64_t* arr, size_t n) {
         for (size_t i = 1; i < m_leaves.size(); ++i) {
             m_nodes[m_leaves[i]].begin = m_nodes[m_leaves[i - 1]].begin +
                                          m_nodes[m_leaves[i - 1]].cm_size;
             m_nodes[m_leaves[i]].end = m_nodes[m_leaves[i]].begin;
         }
 
-        uint64_t max_idx =
+        m_max_idx =
             m_nodes[m_leaves.back()].begin + m_nodes[m_leaves.back()].cm_size;
 
-        printf("max_idx: %lu\n", max_idx);
+        printf("max_idx: %lu\n", m_max_idx);
+    }
 
-        std::unique_ptr<uint64_t[]> buffer(new uint64_t[max_idx]);
+    void sort(uint64_t* arr, size_t n) {
+        std::unique_ptr<uint64_t[]> buffer(new uint64_t[m_max_idx]);
 
         // move the number into the correct leaf
         for (int i = 0; i < n; ++i) {
@@ -97,8 +98,11 @@ class Trie {
                 const uint8_t radix = (uint8_t)((arr[i] >> shift) & 0xff);
                 if (!m_nodes[x + radix].child_idx) {
                     buffer[m_nodes[x + radix].end++] = arr[i];
-                    // printf("arr %d: %016lx into leaf %d\n", i, arr[i], x +
-                    // radix);
+                    // printf(
+                    //     "arr %d: %016lx into leaf %d: begin %d end %d cm_size "
+                    //     "%lu\n",
+                    //     i, arr[i], x + radix, m_nodes[x + radix].begin,
+                    //     m_nodes[x + radix].end, m_nodes[x + radix].cm_size);
                     break;
                 } else {
                     x = m_nodes[x + radix].child_idx;
@@ -106,9 +110,9 @@ class Trie {
             }
         }
 
-        for (size_t i = 0; i < m_leaves.size(); ++i) {
-            m_nodes[m_leaves[i]].print();
-        }
+        // for (size_t i = 0; i < m_leaves.size(); ++i) {
+        //     m_nodes[m_leaves[i]].print();
+        // }
 
         printf("nodes size: %lu, leaves size: %lu\n", m_nodes.size(),
                m_leaves.size());
@@ -128,7 +132,7 @@ class Trie {
             // printf("\n");
             // q_sort(arr + arr_off, size);
             radix_sort(arr + arr_off, buffer.get() + off, size,
-                       m_nodes[idx].shift);
+                       m_nodes[idx].shift - Switch::RADIX_BIT);
             arr_off += size;
         }
         printf("arr_off: %d\n", arr_off);
@@ -158,8 +162,13 @@ int main(int argc, char** argv) {
 
     std::unique_ptr<uint64_t[]> arr(new uint64_t[n]);
 
-    GenRandom gen;
+    GenExponential gen;
     gen(arr.get(), arr.get() + n);
+    // arr[0] = 0x9f1f621ab050007e;
+    // arr[1] = 0xf93d415f8e9cd8fd;
+    // arr[2] = 0x28aff38934c7da27;
+    // arr[3] = 0x612202468b6bdb6f;
+    // arr[4] = 0x2b5a8ab41ae0b579;
 
     // simulating in-network sketch computation
     std::unique_ptr<Switch> sw(new Switch(hash_num, width));
@@ -168,6 +177,15 @@ int main(int argc, char** argv) {
 
     // simulating on-host sorting using sketch results
     std::unique_ptr<Trie> trie(new Trie(sw->getSketch(), threshold));
+
+    // for (uint64_t i = 0; i < n; ++i) {
+    //     for (uint8_t shift = Switch::INITIAL_SHIFT; shift > 0;
+    //          shift -= Switch::RADIX_BIT) {
+    //         uint64_t key = (arr[i] >> shift) << shift;
+    //         printf("query %16lx, shift %d, result %ld\n", key, shift,
+    //         sw->getSketch()->query(key));
+    //     }
+    // }
 
     auto begin_time = std::chrono::high_resolution_clock::now();
     trie->sort(arr.get(), n);

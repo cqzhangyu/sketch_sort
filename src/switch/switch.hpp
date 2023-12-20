@@ -20,12 +20,13 @@ class Switch {
         for (int i = 0; i < n; ++i) {
             for (uint8_t shift = INITIAL_SHIFT; shift > 0; shift -= RADIX_BIT) {
                 uint64_t key = (arr[i] >> shift) << shift;
+                // printf("key: %016lx shift: %d\n", key, shift);
                 m_sketch->update(key);
                 // printf("key: %016lx shift: %d\n", key, shift);
             }
         }
 
-        std::cout << "max_num: " << m_sketch->getMaxNum() << std::endl;
+        std::cout << "sketch max_num: " << m_sketch->getMaxNum() << std::endl;
     }
 
     CmSketch* getSketch() { return m_sketch.get(); }
