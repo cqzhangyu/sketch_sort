@@ -18,24 +18,26 @@ int main(int argc, char **argv) {
     parser.add<int>("num", 'n', "number of elements", false, 65536);
     parser.add<std::string>("gen", 'g', "generator type", false, "random");
     parser.add<int>("width", 'w', "sketch width", false, 65536);
-    parser.add<int>("heavy", 0, "heavy size of Elastic Sketch", false, 1024);
-    parser.add<double>("lambda", 0, "lambda in Elastic Sketch", false, 0.125);
+    parser.add<int>("heavy_depth", 0, "heavy part depth of Elastic Sketch", false, 4);
+    parser.add<int>("heavy_width", 0, "heavy part width of Elastic Sketch", false, 4096);
+    parser.add<double>("lambda", 0, "lambda in Elastic Sketch", false, 32);
 
     parser.parse(argc, argv);
 
     int n = parser.get<int>("num");
     std::string genstr = parser.get<std::string>("gen");
     int width = parser.get<int>("width");
-    int heavy = parser.get<int>("heavy");
+    int heavy_depth = parser.get<int>("heavy_depth");
+    int heavy_width = parser.get<int>("heavy_width");
     double lambda = parser.get<double>("lambda");
 
     CmSketch cms(3, width);
     TowerSketch tower(3, width);
-    if (heavy > width) {
+    if (heavy_depth * heavy_width > width) {
         fprintf(stderr, "error! heavy must < width!\n");
         exit(1);
     }
-    ElasticSketch es(3, width - heavy, heavy, lambda);
+    ElasticSketch es(3, width - heavy_depth * heavy_width, heavy_depth, heavy_width, lambda);
     std::set<uint64_t> keys;
 
     uint64_t *arr = new uint64_t[n];
