@@ -42,7 +42,7 @@ class Trie {
 
     void build_trie(CmSketch* cm, uint64_t prefix, uint8_t shift,
                     uint64_t idx) {
-        uint64_t cm_size = cm->query(prefix);
+        uint32_t cm_size = cm->query(prefix);
         // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix,
         // cm_size, shift, idx);
         if (cm_size < m_threshold) {

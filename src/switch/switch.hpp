@@ -23,6 +23,10 @@ class Switch {
                 // printf("key: %016lx shift: %d\n", key, shift);
                 m_sketch->update(key);
                 // printf("key: %016lx shift: %d\n", key, shift);
+
+                // optimization! conservative update!
+                // the sketch values in the lower layers should not be greater 
+                // than the sketch values in its higher layers!
             }
         }
 

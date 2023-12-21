@@ -1,3 +1,4 @@
+#pragma once
 #include <cmath>
 #include <limits>
 #include <cstdint>
@@ -37,8 +38,8 @@ class CmSketch : public Sketch {
    private:
     uint32_t m_hashNum;
     uint32_t m_width;
-    std::vector<uint64_t> m_bitmap;
-    uint64_t m_max_num;
+    std::vector<uint32_t> m_bitmap;
+    uint32_t m_max_num;
 
    public:
     CmSketch(uint32_t hashNum, uint32_t width)
@@ -48,26 +49,28 @@ class CmSketch : public Sketch {
         }
     }
 
-    uint64_t query(uint64_t key) {
-        uint64_t res = std::numeric_limits<uint64_t>::max();
+    uint32_t query(uint64_t key) {
+        uint32_t res = std::numeric_limits<uint32_t>::max();
         for (int i = 0; i < m_hashNum; ++i) {
-            uint8_t row_idx = hash(key, m_seeds[i]) % m_width;
+            uint32_t row_idx = hash(key, m_seeds[i]) % m_width;
             res = std::min(res, m_bitmap[i * m_width + row_idx]);
         }
         return res;
     }
 
     void update(uint64_t key) {
+        uint32_t m_max_val = std::numeric_limits<uint32_t>::max();
         for (int i = 0; i < m_hashNum; ++i) {
-            uint8_t row_idx = hash(key, m_seeds[i]) % m_width;
-            m_bitmap[i * m_width + row_idx]++;
+            uint32_t row_idx = hash(key, m_seeds[i]) % m_width;
+            if (m_bitmap[i * m_width + row_idx] != m_max_val)
+                m_bitmap[i * m_width + row_idx] ++;
             m_max_num = std::max(m_max_num, m_bitmap[i * m_width + row_idx]);
         }
     }
 
-    std::vector<uint64_t> getBitmap() { return m_bitmap; }
+    std::vector<uint32_t> getBitmap() { return m_bitmap; }
 
     std::pair<uint32_t, uint32_t> getBitmapSize() { return {m_hashNum, m_width}; }
 
-    uint64_t getMaxNum() { return m_max_num; }
+    uint32_t getMaxNum() { return m_max_num; }
 };

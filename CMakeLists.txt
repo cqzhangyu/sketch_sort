@@ -20,3 +20,4 @@ link_libraries(Threads::Threads)
 
 add_executable(cm_trie src/cm_trie.cpp)
 add_executable(switch_sort src/switch_sort.cpp)
+add_executable(sketch_test src/sketch_test.cpp)

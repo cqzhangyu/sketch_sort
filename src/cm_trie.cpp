@@ -15,8 +15,8 @@
 #define N_ITER 10
 #define MIN_BUFSIZ 8192
 
-#define SAMPLE_STRIP (1<<17)
-#define SAMPLE_EQUAL 8
+#define SAMPLE_STRIP (1<<14)
+#define SAMPLE_EQUAL 5
 
 #define CM_DEPTH 3
 #define CM_WIDTH 100000
@@ -25,7 +25,7 @@
 #define RADIX_MASK (((uint64_t)1 << RADIX_BIT) - 1)
 #define INITIAL_SHIFT (sizeof(uint64_t)*8 - RADIX_BIT)
 
-#define NUM_NODE 65536
+#define NUM_NODE 100000
 #define MAXINT 0x7fffffff
 
 uint64_t seeds[] = {0xdeadbeef,
@@ -174,7 +174,7 @@ static int dfs_getoff(int x, uint64_t key, uint8_t shift, struct node_t *nodes, 
             int size = cm_query(cm, key | (i << shift) | shift);
             nodes[x + i].begin = cur_off;
             nodes[x + i].end = nodes[x + i].begin;
-            nodes[x + i].shift = shift;
+            nodes[x + i].shift = shift - RADIX_BIT;
             cur_off += size;
             leaves[(*nleaf_p) ++] = x + i;
         }
@@ -201,7 +201,7 @@ double work(int n) {
 
     build_trie(arr, n, &nnode, nodes, cm);
 
-    // printf("nnode = %d\n", nnode);
+    printf("nnode = %d\n", nnode);
 
     st_ms = gettime_ms();
 
@@ -236,6 +236,7 @@ double work(int n) {
         radix_sort(arr + arr_off, buffer + off, size, nodes[x].shift);
         arr_off += size;
     }
+    // radix_sort(arr, buffer, n, INITIAL_SHIFT);
     
     /************ two phase sort end ************/
     ed_ms = gettime_ms();
