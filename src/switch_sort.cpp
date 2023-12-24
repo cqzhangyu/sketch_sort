@@ -5,6 +5,7 @@
 #include <iostream>
 #include <memory>
 
+#include "common/cmdline.h"
 #include "common/radix_sort.hpp"
 #include "common/utils.hpp"
 #include "generator/generator.hpp"
@@ -40,8 +41,7 @@ class Trie {
     std::vector<size_t> m_leaves;
     uint64_t m_max_idx;
 
-    void build_trie(CmSketch* cm, uint64_t prefix, uint8_t shift,
-                    uint64_t idx) {
+    void build_trie(Sketch* cm, uint64_t prefix, uint8_t shift, uint64_t idx) {
         uint32_t cm_size = cm->query(prefix);
         // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix,
         // cm_size, shift, idx);
@@ -58,7 +58,7 @@ class Trie {
         m_nodes.resize(m_nodes.size() + (1 << Switch::RADIX_BIT), Node());
 
         uint8_t new_shift = shift - Switch::RADIX_BIT;
-        if (new_shift == 0) return;
+        if (new_shift == Switch::INITIAL_SHIFT * 3) return;
 
         for (uint64_t i = 0; i < (1 << Switch::RADIX_BIT); ++i) {
             build_trie(cm, prefix | (i << new_shift), new_shift,
@@ -67,7 +67,7 @@ class Trie {
     }
 
    public:
-    Trie(CmSketch* cm, uint64_t threshold)
+    Trie(Sketch* cm, uint64_t threshold)
         : m_threshold(threshold), m_max_idx(0) {
         m_nodes.resize((1 << Switch::RADIX_BIT), Node());
         for (uint64_t i = 0; i < (1 << Switch::RADIX_BIT); ++i) {
@@ -83,12 +83,11 @@ class Trie {
 
         m_max_idx =
             m_nodes[m_leaves.back()].begin + m_nodes[m_leaves.back()].cm_size;
-
-        printf("max_idx: %lu\n", m_max_idx);
     }
 
     void sort(uint64_t* arr, size_t n) {
         std::unique_ptr<uint64_t[]> buffer(new uint64_t[m_max_idx]);
+        printf("buffer size: %lu\n", m_max_idx);
 
         // move the number into the correct leaf
         for (int i = 0; i < n; ++i) {
@@ -99,7 +98,8 @@ class Trie {
                 if (!m_nodes[x + radix].child_idx) {
                     buffer[m_nodes[x + radix].end++] = arr[i];
                     // printf(
-                    //     "arr %d: %016lx into leaf %d: begin %d end %d cm_size "
+                    //     "arr %d: %016lx into leaf %d: begin %d end %d cm_size
+                    //     "
                     //     "%lu\n",
                     //     i, arr[i], x + radix, m_nodes[x + radix].begin,
                     //     m_nodes[x + radix].end, m_nodes[x + radix].cm_size);
@@ -144,26 +144,48 @@ class Trie {
 };
 
 int main(int argc, char** argv) {
-    // srand(time(NULL));
-    int n;
-    uint32_t hash_num, width;
-    uint64_t threshold;
+    cmdline::parser parser;
+    parser.add<int>("num", 'n', "number of elements", false, 65536);
+    parser.add<std::string>("gen", 'g', "generator type", false, "random");
+    parser.add<std::string>("sketch", 's', "sketch type", false, "cm");
+    parser.add<int>("hashnum", 'h', "hash number", false, 3);
+    parser.add<int>("width", 'w', "sketch width", false, 65536);
+    parser.add<int>("heavy_depth", 0, "heavy part depth of Elastic Sketch",
+                    false, 4);
+    parser.add<int>("heavy_width", 0, "heavy part width of Elastic Sketch",
+                    false, 4096);
+    parser.add<double>("lambda", 0, "lambda in Elastic Sketch", false, 32);
+    parser.add<int>("threshold", 0, "Trie bucket threshold", false, 65536);
+    parser.add<bool>("baseline", 0, "use baseline", false, false);
 
-    if (argc != 5) {
-        std::cerr << "Usage: " << argv[0]
-                  << " <n> <hash_num> <width> <threshold>" << std::endl;
-        exit(1);
-    } else {
-        n = atoi(argv[1]);
-        hash_num = atoi(argv[2]);
-        width = atoi(argv[3]);
-        threshold = atoi(argv[4]);
-    }
+    parser.parse(argc, argv);
+
+    int n = parser.get<int>("num");
+    std::string genstr = parser.get<std::string>("gen");
+    std::string sketch = parser.get<std::string>("sketch");
+    int hash_num = parser.get<int>("hashnum");
+    int width = parser.get<int>("width");
+    int heavy_depth = parser.get<int>("heavy_depth");
+    int heavy_width = parser.get<int>("heavy_width");
+    double lambda = parser.get<double>("lambda");
+    int threshold = parser.get<int>("threshold");
+    bool baseline = parser.get<bool>("baseline");
 
     std::unique_ptr<uint64_t[]> arr(new uint64_t[n]);
+    if (genstr == "random") {
+        GenRandom gen;
+        gen(arr.get(), arr.get() + n);
+    } else if (genstr == "exponential") {
+        GenExponential gen;
+        gen(arr.get(), arr.get() + n);
+    } else if (genstr == "zipf") {
+        GenZipf gen;
+        gen(arr.get(), arr.get() + n);
+    } else {
+        fprintf(stderr, "unknown generator type: %s\n", genstr.c_str());
+        exit(1);
+    }
 
-    GenExponential gen;
-    gen(arr.get(), arr.get() + n);
     // arr[0] = 0x9f1f621ab050007e;
     // arr[1] = 0xf93d415f8e9cd8fd;
     // arr[2] = 0x28aff38934c7da27;
@@ -171,8 +193,10 @@ int main(int argc, char** argv) {
     // arr[4] = 0x2b5a8ab41ae0b579;
 
     // simulating in-network sketch computation
-    std::unique_ptr<Switch> sw(new Switch(hash_num, width));
+    std::unique_ptr<Switch> sw(
+        new Switch(hash_num, width, sketch, heavy_depth, heavy_width, lambda));
 
+    printf("running with %s\n", sketch.c_str());
     sw->run(arr.get(), n);
 
     // simulating on-host sorting using sketch results
@@ -188,7 +212,13 @@ int main(int argc, char** argv) {
     // }
 
     auto begin_time = std::chrono::high_resolution_clock::now();
-    trie->sort(arr.get(), n);
+    if (baseline) {
+        printf("=====baseline=====\n");
+        std::unique_ptr<uint64_t[]> buffer(new uint64_t[n]);
+        radix_sort(arr.get(), buffer.get(), n, Switch::INITIAL_SHIFT);
+    } else {
+        trie->sort(arr.get(), n);
+    }
     // std::unique_ptr<uint64_t[]> buffer(new uint64_t[n]);
     // radix_sort(arr.get(), buffer.get(), n, Switch::INITIAL_SHIFT);
     auto end_time = std::chrono::high_resolution_clock::now();

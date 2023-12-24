@@ -9,7 +9,7 @@
 #include "common/cmdline.h"
 #include "common/utils.hpp"
 #include "switch/ElasticSketch.hpp"
-#include "switch/sketch.hpp"
+#include "switch/CmSketch.hpp"
 #include "switch/TowerSketch.hpp"
 #include "generator/generator.hpp"
 
