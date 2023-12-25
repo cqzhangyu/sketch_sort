@@ -30,7 +30,8 @@ class Trie {
                 printf("!!!!!!!!!");
 
                 printf(
-                    "begin: %lu end: %lu cm_size: %lu shift: %d child_idx: %lu\n",
+                    "begin: %lu end: %lu cm_size: %lu shift: %d child_idx: "
+                    "%lu\n",
                     begin, end, cm_size, shift, child_idx);
             }
         }
@@ -43,8 +44,8 @@ class Trie {
 
     void build_trie(Sketch* cm, uint64_t prefix, uint8_t shift, uint64_t idx) {
         uint64_t cm_size = cm->query(prefix | shift);
-        // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix | shift,
-        // cm_size, shift, idx);
+        // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix |
+        // shift, cm_size, shift, idx);
         if (cm_size <= m_threshold || shift == Switch::LAST_SHIFT) {
             m_leaves.push_back(idx);
             m_nodes[idx].cm_size = cm_size;
@@ -140,6 +141,8 @@ class Trie {
     std::vector<Trie::Node>& getNodes() { return m_nodes; }
 
     std::vector<size_t>& getLeaves() { return m_leaves; }
+
+    uint64_t getBufferSize() { return m_max_idx; }
 };
 
 int main(int argc, char** argv) {
@@ -147,7 +150,7 @@ int main(int argc, char** argv) {
     parser.add<int>("num", 'n', "number of elements", false, 1 << 25);
     parser.add<std::string>("gen", 'g', "generator type", false, "random");
     parser.add<std::string>("sketch", 's', "sketch type", false, "cm");
-    parser.add<int>("hashnum", 'h', "hash number", false, 4);
+    parser.add<int>("hashnum", 'h', "hash number", false, 3);
     parser.add<int>("width", 'w', "sketch width", false, 65536);
     parser.add<int>("heavy_depth", 0, "heavy part depth of Elastic Sketch",
                     false, 4);
@@ -244,6 +247,14 @@ int main(int argc, char** argv) {
             break;
         }
     }
+
+    FILE* fp = fopen("data/switch_sort.csv", "a");
+    fprintf(
+        fp, "%d,%s,%s,%ld,%ld,%ld,%d,%ld,%d\n", n, sketch.c_str(),
+        genstr.c_str(),
+        std::chrono::duration_cast<std::chrono::milliseconds>(duration).count(),
+        trie->getNodes().size(), trie->getLeaves().size(), width,
+        trie->getBufferSize(), threshold);
 
     return 0;
 }

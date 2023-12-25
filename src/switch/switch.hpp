@@ -13,7 +13,7 @@ class Switch {
     constexpr static uint8_t RADIX_BIT = 8;
     constexpr static uint64_t RADIX_MASK = ((uint64_t)1 << RADIX_BIT) - 1;
     constexpr static uint64_t INITIAL_SHIFT = sizeof(uint64_t) * 8 - RADIX_BIT;
-    constexpr static uint8_t LAST_SHIFT = RADIX_BIT * 6;
+    constexpr static uint8_t LAST_SHIFT = RADIX_BIT * 2;
 
     Switch(uint32_t hashNum, uint32_t width, std::string sketch,
            uint32_t heavyDepth = 0, uint32_t heavyWidth = 0,
