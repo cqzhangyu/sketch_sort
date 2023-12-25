@@ -16,8 +16,8 @@ class Trie {
     class Node {
        public:
         // for leaf nodes
-        int begin;
-        int end;
+        uint64_t begin;
+        uint64_t end;
         uint64_t cm_size;
 
         uint64_t child_idx;
@@ -30,7 +30,7 @@ class Trie {
                 printf("!!!!!!!!!");
 
                 printf(
-                    "begin: %d end: %d cm_size: %lu shift: %d child_idx: %ld\n",
+                    "begin: %lu end: %lu cm_size: %lu shift: %d child_idx: %lu\n",
                     begin, end, cm_size, shift, child_idx);
             }
         }
@@ -42,10 +42,10 @@ class Trie {
     uint64_t m_max_idx;
 
     void build_trie(Sketch* cm, uint64_t prefix, uint8_t shift, uint64_t idx) {
-        uint32_t cm_size = cm->query(prefix);
-        // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix,
+        uint64_t cm_size = cm->query(prefix | shift);
+        // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix | shift,
         // cm_size, shift, idx);
-        if (cm_size < m_threshold) {
+        if (cm_size <= m_threshold) {
             m_leaves.push_back(idx);
             m_nodes[idx].cm_size = cm_size;
             m_nodes[idx].shift = shift;
@@ -58,7 +58,7 @@ class Trie {
         m_nodes.resize(m_nodes.size() + (1 << Switch::RADIX_BIT), Node());
 
         uint8_t new_shift = shift - Switch::RADIX_BIT;
-        if (new_shift == Switch::INITIAL_SHIFT * 3) return;
+        if (new_shift == Switch::RADIX_BIT * 4) return;
 
         for (uint64_t i = 0; i < (1 << Switch::RADIX_BIT); ++i) {
             build_trie(cm, prefix | (i << new_shift), new_shift,
@@ -118,11 +118,11 @@ class Trie {
                m_leaves.size());
 
         // sort each leaf
-        int arr_off = 0;
+        uint64_t arr_off = 0;
         for (int i = 0; i < m_leaves.size(); ++i) {
-            int idx = m_leaves[i];
-            int off = m_nodes[idx].begin;
-            int size = m_nodes[idx].end - m_nodes[idx].begin;
+            uint64_t idx = m_leaves[i];
+            uint64_t off = m_nodes[idx].begin;
+            uint64_t size = m_nodes[idx].end - m_nodes[idx].begin;
             memcpy(arr + arr_off, buffer.get() + off, size * sizeof(uint64_t));
             // printf("=====cm_size %ld, shift %d====\n", m_nodes[idx].cm_size,
             //        m_nodes[idx].shift);
@@ -135,7 +135,7 @@ class Trie {
                        m_nodes[idx].shift - Switch::RADIX_BIT);
             arr_off += size;
         }
-        printf("arr_off: %d\n", arr_off);
+        printf("arr_off: %lu\n", arr_off);
     }
 
     std::vector<Trie::Node>& getNodes() { return m_nodes; }
@@ -148,7 +148,7 @@ int main(int argc, char** argv) {
     parser.add<int>("num", 'n', "number of elements", false, 65536);
     parser.add<std::string>("gen", 'g', "generator type", false, "random");
     parser.add<std::string>("sketch", 's', "sketch type", false, "cm");
-    parser.add<int>("hashnum", 'h', "hash number", false, 3);
+    parser.add<int>("hashnum", 'h', "hash number", false, 4);
     parser.add<int>("width", 'w', "sketch width", false, 65536);
     parser.add<int>("heavy_depth", 0, "heavy part depth of Elastic Sketch",
                     false, 4);
@@ -186,11 +186,15 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    // arr[0] = 0x9f1f621ab050007e;
-    // arr[1] = 0xf93d415f8e9cd8fd;
-    // arr[2] = 0x28aff38934c7da27;
-    // arr[3] = 0x612202468b6bdb6f;
-    // arr[4] = 0x2b5a8ab41ae0b579;
+    // for (int i = 0; i < n; ++i) {
+    //     printf("%016lx\n", arr[i]);
+    // }
+
+    arr[0] = 0x709980af23f35458;
+    arr[1] = 0x4a3a977ea3fc9a01;
+    arr[2] = 0x2ddae4c06275eb31;
+    arr[3] = 0x1f5d705f12a0057b;
+    arr[4] = 0xf9a9ae047a334313;
 
     // simulating in-network sketch computation
     std::unique_ptr<Switch> sw(

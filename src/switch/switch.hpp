@@ -32,9 +32,9 @@ class Switch {
 
     void run(uint64_t* arr, int n) {
         for (int i = 0; i < n; ++i) {
-            for (uint8_t shift = INITIAL_SHIFT; shift > RADIX_BIT * 3;
+            for (uint8_t shift = INITIAL_SHIFT; shift > RADIX_BIT * 4;
                  shift -= RADIX_BIT) {
-                uint64_t key = (arr[i] >> shift) << shift;
+                uint64_t key = ((arr[i] >> shift) << shift) | shift;
                 // printf("key: %016lx shift: %d\n", key, shift);
                 m_sketch->update(key);
                 // printf("key: %016lx shift: %d\n", key, shift);
