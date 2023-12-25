@@ -8,8 +8,16 @@
 
 #include "count.p4"
 
-typedef bit<9> egress_spec_t;
+typedef bit<9>  egress_spec_t;
 typedef bit<48> mac_addr_t;
+typedef bit<32> ip4_addr_t;
+typedef bit<16> port_t;
+typedef bit<16> checksum_t;
+
+const bit<8>  TCP_PROTOCOL = 0x06;
+const bit<8>  UDP_PROTOCOL = 0x11;
+
+const bit<16> TYPE_IPV4 = 0x800;
 
 /*************************************************************************
 *********************** H E A D E R S  ***********************************
@@ -34,45 +42,54 @@ header ip_t {
     bit<32> dip;
 }
 
+header udp_t{
+    port_t src_port;
+    port_t dst_port;
+    bit<16> length;
+    checksum_t checksum;
+}
+
 header keys_t {
     bit<32> key0;
     bit<32> key1;
     bit<32> key2;
     bit<32> key3;
     bit<32> key4;
-    bit<32> key5;
-    bit<32> key6;
-    bit<32> key7;
-    bit<32> key8;
-    bit<32> key9;
+    // bit<32> key5;
+    // bit<32> key6;
+    // bit<32> key7;
+    // bit<32> key8;
+    // bit<32> key9;
+}
+
+header res_t {
+    bit<32> val0;
+    bit<32> val1;
+    bit<32> val2;
+    bit<32> val3;
+    bit<32> val4;
+    // bit<32> val5;
+    // bit<32> val6;
+    // bit<32> val7;
+    // bit<32> val8;
+    // bit<32> val9;
 }
 
 struct headers {
     ethernet_t ethernet;
     ip_t ip;
+    udp_t udp;
     keys_t keys;
+    res_t res;
 }
 
 struct port_metadata_t {
     bit<16> unused;
 }
 
-struct res_t {
-    bit<32> val0;
-    bit<32> val1;
-    bit<32> val2;
-    bit<32> val3;
-    bit<32> val4;
-    bit<32> val5;
-    bit<32> val6;
-    bit<32> val7;
-    bit<32> val8;
-    bit<32> val9;
-}
-
 struct metadata {
     port_metadata_t port_metadata;
-    res_t res;
+    bit<32> inc;
 }
 
 /*************************************************************************
@@ -98,6 +115,24 @@ parser IngressParser(packet_in packet,
 
     state parse_ethernet {
         packet.extract(hdr.ethernet);
+        transition select(hdr.ethernet.ether_type) {
+            TYPE_IPV4: parse_ip;
+            default: accept;
+        }
+    }
+
+    state parse_ip {
+        packet.extract(hdr.ip);
+        transition select(hdr.ip.dscp_ecn) {
+            8w0x04 &&& 8w0xfc: parse_switch_sort;
+            default: accept;
+        }
+    }
+
+    state parse_switch_sort{
+        packet.extract(hdr.udp);
+        packet.extract(hdr.keys);
+        packet.extract(hdr.res);
         transition accept;
     }
 }
@@ -145,7 +180,9 @@ control Ingress(
     apply {
         l2_forward_table.apply();
         if(hdr.ip.dscp_ecn[7:2] == 1) {
-            count.apply(hdr.keys, 1, meta.res);
+            //meta.inc = 1;
+            //count.apply(hdr.keys, meta.inc, hdr.res);
+            count.apply(hdr.keys, 1, hdr.res);
         } 
     }
 }

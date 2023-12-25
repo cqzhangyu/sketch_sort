@@ -74,21 +74,11 @@ control Count_##KEYBIT##_##CTRBIT##_##REGBIT##( \
     multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s2;   \
     multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s3;   \
     multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s4;   \
-    multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s5;   \
-    multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s6;   \
-    multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s7;   \
-    multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s8;   \
-    multiway_sketch_##KEYBIT##_##CTRBIT##_##REGBIT##(reg_siz) s9;   \
     apply{                                                          \
         s0.apply(keys.key0, value, res.val0);                      \
         s1.apply(keys.key1, value, res.val1);                      \
         s2.apply(keys.key2, value, res.val2);                      \
         s3.apply(keys.key3, value, res.val3);                      \
         s4.apply(keys.key4, value, res.val4);                      \
-        s5.apply(keys.key5, value, res.val5);                      \
-        s6.apply(keys.key6, value, res.val6);                      \
-        s7.apply(keys.key7, value, res.val7);                      \
-        s8.apply(keys.key8, value, res.val8);                      \
-        s9.apply(keys.key9, value, res.val9);                      \
     }                                                       \
 }
