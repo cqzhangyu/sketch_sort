@@ -45,7 +45,7 @@ class Trie {
         uint64_t cm_size = cm->query(prefix | shift);
         // printf("prefix: %016lx cm_size: %lu shift: %d idx: %lu\n", prefix | shift,
         // cm_size, shift, idx);
-        if (cm_size <= m_threshold) {
+        if (cm_size <= m_threshold || shift == Switch::LAST_SHIFT) {
             m_leaves.push_back(idx);
             m_nodes[idx].cm_size = cm_size;
             m_nodes[idx].shift = shift;
@@ -58,7 +58,6 @@ class Trie {
         m_nodes.resize(m_nodes.size() + (1 << Switch::RADIX_BIT), Node());
 
         uint8_t new_shift = shift - Switch::RADIX_BIT;
-        if (new_shift == Switch::RADIX_BIT * 4) return;
 
         for (uint64_t i = 0; i < (1 << Switch::RADIX_BIT); ++i) {
             build_trie(cm, prefix | (i << new_shift), new_shift,
@@ -145,7 +144,7 @@ class Trie {
 
 int main(int argc, char** argv) {
     cmdline::parser parser;
-    parser.add<int>("num", 'n', "number of elements", false, 65536);
+    parser.add<int>("num", 'n', "number of elements", false, 1 << 25);
     parser.add<std::string>("gen", 'g', "generator type", false, "random");
     parser.add<std::string>("sketch", 's', "sketch type", false, "cm");
     parser.add<int>("hashnum", 'h', "hash number", false, 4);
@@ -156,7 +155,7 @@ int main(int argc, char** argv) {
                     false, 4096);
     parser.add<double>("lambda", 0, "lambda in Elastic Sketch", false, 32);
     parser.add<int>("threshold", 0, "Trie bucket threshold", false, 65536);
-    parser.add<bool>("baseline", 0, "use baseline", false, false);
+    parser.add("baseline", 0, "use baseline");
 
     parser.parse(argc, argv);
 
@@ -169,7 +168,7 @@ int main(int argc, char** argv) {
     int heavy_width = parser.get<int>("heavy_width");
     double lambda = parser.get<double>("lambda");
     int threshold = parser.get<int>("threshold");
-    bool baseline = parser.get<bool>("baseline");
+    bool baseline = parser.exist("baseline");
 
     std::unique_ptr<uint64_t[]> arr(new uint64_t[n]);
     if (genstr == "random") {
@@ -190,11 +189,11 @@ int main(int argc, char** argv) {
     //     printf("%016lx\n", arr[i]);
     // }
 
-    arr[0] = 0x709980af23f35458;
-    arr[1] = 0x4a3a977ea3fc9a01;
-    arr[2] = 0x2ddae4c06275eb31;
-    arr[3] = 0x1f5d705f12a0057b;
-    arr[4] = 0xf9a9ae047a334313;
+    // arr[0] = 0x709980af23f35458;
+    // arr[1] = 0x4a3a977ea3fc9a01;
+    // arr[2] = 0x2ddae4c06275eb31;
+    // arr[3] = 0x1f5d705f12a0057b;
+    // arr[4] = 0xf9a9ae047a334313;
 
     // simulating in-network sketch computation
     std::unique_ptr<Switch> sw(
