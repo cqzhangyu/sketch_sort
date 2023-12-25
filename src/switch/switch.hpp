@@ -32,12 +32,19 @@ class Switch {
     }
 
     void run(uint64_t* arr, int n) {
+        uint32_t min_value = std::numeric_limits<uint32_t>::max();
         for (int i = 0; i < n; ++i) {
             for (uint8_t shift = INITIAL_SHIFT; shift >= LAST_SHIFT;
                  shift -= RADIX_BIT) {
                 uint64_t key = ((arr[i] >> shift) << shift) | shift;
                 // printf("key: %016lx shift: %d\n", key, shift);
-                m_sketch->update(key);
+                uint32_t cur_value = m_sketch->query(key);
+                if (cur_value < min_value) {
+                    m_sketch->update(key);
+                    min_value = cur_value + 1;
+                }
+                
+
                 // printf("key: %016lx shift: %d\n", key, shift);
 
                 // optimization! conservative update!
