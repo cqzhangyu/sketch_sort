@@ -33,13 +33,14 @@ class ElasticSketch : public Sketch {
     }
 
     uint32_t query(uint64_t key) {
+        uint32_t res = 0;
         for (uint32_t i = 0; i < m_heavy_depth; i ++) {
             uint32_t heavy_idx = i * m_heavy_width + hash(key, m_seeds[m_hash_num + i]) % m_heavy_width;
             if (heavy[heavy_idx].key == key) {
-                return heavy[heavy_idx].positive;
+                res += heavy[heavy_idx].positive;
             }
         }
-        return light.query(key);
+        return res + light.query(key);
     }
 
     void update(uint64_t key) {
