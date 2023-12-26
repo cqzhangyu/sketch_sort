@@ -1,5 +1,5 @@
 #!/bin/bash
 
-for thresh in 300000 100000 20000 4000 800; do
-    ./build/switch_sort -n 33554432 -g random -s elastic -w 3000000 --threshold $thresh
+for thresh in 100 75 50 25; do
+    ./build/switch_sort -n 33554432 -g zipf -s elastic -w 100 --threshold $thresh
 done

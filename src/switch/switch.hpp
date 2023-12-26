@@ -1,9 +1,9 @@
 #include <memory>
 #include <vector>
 
+#include "CmSketch.hpp"
 #include "ElasticSketch.hpp"
 #include "TowerSketch.hpp"
-#include "CmSketch.hpp"
 
 class Switch {
    private:
@@ -38,12 +38,13 @@ class Switch {
                  shift -= RADIX_BIT) {
                 uint64_t key = ((arr[i] >> shift) << shift) | shift;
                 // printf("key: %016lx shift: %d\n", key, shift);
-                uint32_t cur_value = m_sketch->query(key);
-                if (cur_value < min_value) {
-                    m_sketch->update(key);
-                    min_value = cur_value + 1;
-                }
-                
+                // uint32_t cur_value = m_sketch->query(key);
+                // if (cur_value < min_value) {
+                //     m_sketch->update(key);
+                //     min_value = cur_value + 1;
+                // }
+
+                m_sketch->update(key);
 
                 // printf("key: %016lx shift: %d\n", key, shift);
 
