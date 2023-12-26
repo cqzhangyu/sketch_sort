@@ -25,7 +25,7 @@ class Switch {
                 std::unique_ptr<TowerSketch>(new TowerSketch(hashNum, width));
         } else if (sketch == "elastic") {
             m_sketch = std::unique_ptr<ElasticSketch>(new ElasticSketch(
-                hashNum, width, heavyDepth, heavyWidth, lambda));
+                hashNum, width - heavyDepth * heavyWidth, heavyDepth, heavyWidth, lambda));
         } else {
             throw std::runtime_error("unknown sketch");
         }
