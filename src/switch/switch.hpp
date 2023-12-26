@@ -32,8 +32,8 @@ class Switch {
     }
 
     void run(uint64_t* arr, int n) {
-        uint32_t min_value = std::numeric_limits<uint32_t>::max();
         for (int i = 0; i < n; ++i) {
+            uint32_t min_value = std::numeric_limits<uint32_t>::max();
             for (uint8_t shift = INITIAL_SHIFT; shift >= LAST_SHIFT;
                  shift -= RADIX_BIT) {
                 uint64_t key = ((arr[i] >> shift) << shift) | shift;
